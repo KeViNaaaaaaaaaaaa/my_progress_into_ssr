@@ -281,26 +281,26 @@ async def handle_search(message: Message, state: FSMContext):
     await state.set_state(Form.unrecognized)
 
 
-@routers.callback_query(lambda message: message.text == 'Сохранения')
+@routers.message(lambda message: message.text == 'Сохранения')
 @check_auth
-async def search_texts(callback: CallbackQuery, state: FSMContext):
+async def search_texts(message: Message, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     await get_text_word(login)
     if not await get_text_word(login):
-        await callback.message.answer('У вас нет текстов для поиска')
+        await message.answer('У вас нет текстов для поиска')
     else:
-        await callback.message.answer('Выберите текст', reply_markup=kb.builder2.as_markup())
+        await message.answer('Выберите текст', reply_markup=kb.builder2.as_markup())
     await state.set_state(Form.unrecognized)
 
 
 @routers.message(lambda message: message.text == 'Удалить аккаунт')
 @check_auth
-async def logout(callback: CallbackQuery, state: FSMContext):
+async def logout(message: Message, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     await get_login(login)
-    await callback.message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
+    await message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
 
 
 @routers.callback_query(F.data == 'register')
