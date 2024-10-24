@@ -268,7 +268,7 @@ async def handle_login(message: Message, state: FSMContext):
     await state.set_state(Form.unrecognized)
 
 
-@routers.message(lambda message: message.text == 'Поиск')
+@routers.callback_query(lambda message: message.text == 'Поиск')
 @check_auth
 async def handle_search(message: Message, state: FSMContext):
     user_data = await state.get_data()
@@ -281,7 +281,7 @@ async def handle_search(message: Message, state: FSMContext):
     await state.set_state(Form.unrecognized)
 
 
-@routers.message(lambda message: message.text == 'Сохранения')
+@routers.callback_query(lambda message: message.text == 'Сохранения')
 @check_auth
 async def search_texts(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
