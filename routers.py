@@ -627,7 +627,6 @@ async def output_real_file(callback: CallbackQuery, state: FSMContext):
 
 
 @routers.callback_query(F.data == 'become2')
-@check_auth
 async def back_name_file(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('ВВедите название файла:')
     await state.set_state(Form.save_file)
@@ -653,7 +652,6 @@ async def perform_exact_search(callback: CallbackQuery, state: FSMContext):
 
 
 @routers.callback_query(Form.save_name, F.data == 'no')
-@check_auth
 async def perform_exact_search(callback: CallbackQuery):
     await callback.message.answer('Ничего не выбрано! Пожалуйста, выберите действие с помощью кнопок.',
                                   reply_markup=kb.inline_keyboard)
@@ -691,13 +689,11 @@ async def save_search_results(message: Message, state: FSMContext):
 
 
 @routers.callback_query(F.data == 'become')
-@check_auth
 async def back_text(callback: CallbackQuery):
     await callback.message.answer('Выберите текст', reply_markup=kb.builder.as_markup())
 
 
 @routers.callback_query(F.data == 'become1')
-@check_auth
 async def back_word(callback: CallbackQuery):
     await callback.message.answer('Выберите слово', reply_markup=kb.builder1.as_markup())
 
