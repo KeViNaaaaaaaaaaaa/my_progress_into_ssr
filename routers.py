@@ -522,12 +522,12 @@ async def on_text_choice(callback: CallbackQuery, state: FSMContext):
     print(full_text)
     if builder_for == 'search':
         await callback.message.answer(f"Вы выбрали текст: {full_text}", reply_markup=kb.inline_keyboard5)
-    if builder_for == 'replace':
+    elif builder_for == 'replace':
         await callback.message.answer(f"Введите слово для замены")
         await state.set_state(Form.text_to_replace)
     else:
         await del_text(full_text, login)
-        await callback.message.answer(f"Вы удалили слово: {full_text}", reply_markup=kb.inline_keyboard_next)
+        await callback.message.answer(f"Вы удалили текст: {full_text}", reply_markup=kb.inline_keyboard_next)
     await state.set_state(Form.unrecognized)
 
 
