@@ -283,14 +283,24 @@ async def handle_search(message: Message, state: FSMContext):
 
 @routers.message(lambda message: message.text == 'Сохранения')
 @check_auth
-async def handle_saves(message: Message):
-    await message.answer("Ваши сохранения:")
+async def search_texts(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    login = user_data.get('login')
+    await get_text_word(login)
+    if not await get_text_word(login):
+        await callback.message.answer('У вас нет текстов для поиска')
+    else:
+        await callback.message.answer('Выберите текст', reply_markup=kb.builder2.as_markup())
+    await state.set_state(Form.unrecognized)
 
 
 @routers.message(lambda message: message.text == 'Удалить аккаунт')
 @check_auth
-async def handle_delete_account(message: Message):
-    await message.answer("Вы уверены, что хотите удалить аккаунт?")
+async def logout(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    login = user_data.get('login')
+    await get_login(login)
+    await callback.message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
 
 
 @routers.callback_query(F.data == 'register')
@@ -738,7 +748,7 @@ async def logout(callback: CallbackQuery, state: FSMContext):
 @routers.callback_query(F.data == 'text_interact')
 @check_auth
 async def logout(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer('Выберите действие', reply_markup=kb.inline_keyboard_interact)
+    await callback.message.answer('Выберите текст', reply_markup=kb.inline_keyboard_interact)
     await state.set_state(Form.unrecognized)
 
 
@@ -749,7 +759,7 @@ async def logout(callback: CallbackQuery, state: FSMContext):
     login = user_data.get('login')
     await state.update_data(builder_for='del')
     await get_text(login)
-    await callback.message.answer('Выберите действие', reply_markup=kb.builder.as_markup())
+    await callback.message.answer('Выберите текст', reply_markup=kb.builder.as_markup())
 
 
 @routers.callback_query(F.data == 'change')
@@ -806,7 +816,7 @@ async def logout(callback: CallbackQuery, state: FSMContext):
     login = user_data.get('login')
     await state.update_data(builder_for='del')
     await get_word(login)
-    await callback.message.answer('Выберите действие', reply_markup=kb.builder1.as_markup())
+    await callback.message.answer('Выберите слово', reply_markup=kb.builder1.as_markup())
 
 
 @routers.callback_query(F.data == 'save_del')
@@ -816,7 +826,7 @@ async def logout(callback: CallbackQuery, state: FSMContext):
     login = user_data.get('login')
     await state.update_data(builder_for='del')
     await get_text_word(login)
-    await callback.message.answer('Выберите действие', reply_markup=kb.builder2.as_markup())
+    await callback.message.answer('Выберите название сохранения', reply_markup=kb.builder2.as_markup())
 
 
 @routers.callback_query(F.data == 'login_interact')
@@ -825,7 +835,7 @@ async def logout(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     await get_login(login)
-    await callback.message.answer('Выберите действие', reply_markup=kb.builder3.as_markup())
+    await callback.message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
 
 
 @routers.callback_query(lambda c: c.data.startswith('login:'))
