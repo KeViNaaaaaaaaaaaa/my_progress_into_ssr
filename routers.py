@@ -27,6 +27,7 @@ def check_auth(func):
         if not login:
             await callback_or_message.answer('Вы не авторизованы! Пожалуйста, войдите в аккаунт или зарегистрируйтесь.',
                                              reply_markup=kb.inline_keyboard3)
+            return
         await func(callback_or_message, *args, state=state, **kwargs)
 
     return wrapped
