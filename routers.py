@@ -1,3 +1,5 @@
+from functools import wraps
+
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import CommandStart
@@ -17,6 +19,7 @@ routers = Router()
 
 
 def check_auth(func):
+    @wraps(func)
     async def wrapped(callback_or_message, *args, state=None, **kwargs):
         user_data = await state.get_data()
         login = user_data.get('login')
