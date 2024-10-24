@@ -451,7 +451,7 @@ async def save_text(callback: CallbackQuery, state: FSMContext):
 @check_auth
 async def search_texts(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-
+    await state.update_data(builder_for='search')
     login = user_data.get('login')
     await get_text(login)
     if not await get_text(login):
