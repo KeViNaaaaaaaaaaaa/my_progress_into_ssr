@@ -60,7 +60,7 @@ async def create_tables():
 async def main():
     await create_tables()
 
-    my_storage = SQLStorage('SearchBot1.db', serializing_method='pickle')
+    my_storage = SQLStorage('SearchBot1.db')
 
     dp = Dispatcher(storage=my_storage)
     dp.include_router(routers)

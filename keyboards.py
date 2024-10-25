@@ -1,12 +1,11 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import hashlib
 
 builder = InlineKeyboardBuilder()
 builder1 = InlineKeyboardBuilder()
 builder2 = InlineKeyboardBuilder()
 builder3 = InlineKeyboardBuilder()
-
-import hashlib
 
 
 async def hash_text(text):
@@ -40,6 +39,7 @@ async def save_name_connect(name):
 
     for i in name:
         builder2.add(InlineKeyboardButton(text=i[0], callback_data=f'name:{i[0]}'))
+
 
 async def login_connect(login):
     global builder3
