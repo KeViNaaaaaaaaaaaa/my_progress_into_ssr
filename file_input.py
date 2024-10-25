@@ -14,6 +14,6 @@ async def download_file(file_id, file_name):
 
 async def get_file_content(file_id):
     file_name = "downloaded_file"
-    downloaded_file = await download_file(file_id, file_name)
+    await download_file(file_id, file_name)
     with open(file_name, 'r', encoding='utf-8') as f:
         return f.read()
