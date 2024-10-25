@@ -23,7 +23,7 @@ async def text_connect(text):
     for i in text:
         text_hash = await hash_text(i[0])
         text_cache[text_hash] = i[0]
-        builder.add(InlineKeyboardButton(text=i[0][:5], callback_data=f'text:{text_hash}'))
+        builder.add(InlineKeyboardButton(text=i[0][:10], callback_data=f'text:{text_hash}'))
 
 
 async def word_connect(word):
