@@ -1,9 +1,6 @@
-
 from create_bot import bot
 from config import TOKEN
-from aiogram import types
 import aiohttp
-import os
 
 
 async def download_file(file_id, file_name):

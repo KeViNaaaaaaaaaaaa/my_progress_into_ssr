@@ -289,6 +289,7 @@ async def logout(message: Message, state: FSMContext):
     await get_login(login)
     await message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
 
+
 @routers.callback_query(F.data == 'login')
 async def ask_for_login(callback: CallbackQuery, state: FSMContext):
     action = callback.data
@@ -425,6 +426,7 @@ async def ask_for_text_input(callback: CallbackQuery, state: FSMContext):
 async def ask_for_word(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('Введите слово:')
     await state.set_state(Form.word)
+
 
 @routers.message(Form.word)
 @check_auth
