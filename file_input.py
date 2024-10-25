@@ -14,11 +14,9 @@ async def download_file(file_id, file_name):
             with open(file_name, 'wb') as f:
                 f.write(await resp.read())
 
-    return file_name
-
 
 async def get_file_content(file_id):
     file_name = "downloaded_file"
     downloaded_file = await download_file(file_id, file_name)
-    with open(downloaded_file, 'r') as f:
+    with open(file_name, 'r', encoding='utf-8') as f:
         return f.read()

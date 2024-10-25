@@ -8,8 +8,7 @@ import keyboards as kb
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import sqlite3
-from keyboards import (text_connect, word_connect, text_cache, word_cache, save_name_connect, name_cache,
-                       login_connect, login_cache)
+from keyboards import text_connect, word_connect, save_name_connect, login_connect, text_cache
 from search_filters import search_word_in_text, fuzzy_search
 from file_input import get_file_content
 import re
@@ -52,22 +51,15 @@ class Form(StatesGroup):
 
 
 class SearchOptions(StatesGroup):
-    case_sensitive = State()
+    reg = State()
     fuzzy_search = State()
     choice_output = State()
-    choice_change = State()
 
 
 class Search(StatesGroup):
     builder_for = State()
     results = State()
-    texts_selection = State()
-    file_selection = State()
-    word_selection = State()
-    choice_selection = State()
-    file_upload = State()
     word_input = State()
-    replace_confirmation = State()
 
 
 async def connect_db():
@@ -272,13 +264,7 @@ async def handle_login(message: Message, state: FSMContext):
 @routers.message(lambda message: message.text == 'Поиск')
 @check_auth
 async def handle_search(message: Message, state: FSMContext):
-    user_data = await state.get_data()
-    login = user_data.get('login')
-    await get_text_word(login)
-    if not await get_text_word(login):
-        await message.answer('У вас нет текстов для поиска')
-    else:
-        await message.answer('Выберите текст', reply_markup=kb.builder2.as_markup())
+    await message.answer('Выберите способ поиска', reply_markup=kb.inline_search_type)
     await state.set_state(Form.unrecognized)
 
 
@@ -303,6 +289,13 @@ async def logout(message: Message, state: FSMContext):
     await get_login(login)
     await message.answer('Выберите логин', reply_markup=kb.builder3.as_markup())
 
+@routers.callback_query(F.data == 'login')
+async def ask_for_login(callback: CallbackQuery, state: FSMContext):
+    action = callback.data
+    await state.update_data(action=action)
+    await callback.message.answer('Добро пожаловать! Для начала введите логин:')
+    await state.set_state(AuthForm.login)
+
 
 @routers.callback_query(F.data == 'register')
 async def ask_for_text(callback: CallbackQuery, state: FSMContext):
@@ -326,17 +319,31 @@ async def ask_for_back(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('Вы в аккаунте', reply_markup=kb.inline_keyboard)
 
 
-@routers.callback_query(F.data == 'login')
-async def ask_for_login(callback: CallbackQuery, state: FSMContext):
-    action = callback.data
-    await state.update_data(action=action)
-    await callback.message.answer('Добро пожаловать! Для начала введите логин:')
-    await state.set_state(AuthForm.login)
+async def validate_login(login):
+    if len(login) < 4:
+        return False, 'Логин должен содержать не менее 5 символов'
+    return True, ''
+
+
+# Функция для валидации пароля
+async def validate_password(password):
+    if len(password) < 7:
+        return False, 'Пароль должен содержать не менее 8 символов'
+    if not re.search("[0-9]", password):
+        return False, 'Пароль должен содержать хотя бы одну цифру'
+    return True, ''
 
 
 @routers.message(AuthForm.login)
 async def ask_for_password(message: Message, state: FSMContext):
-    await state.update_data(login=message.text)
+    login = message.text
+    is_valid, error_message = await validate_login(login)
+
+    if not is_valid:
+        await message.answer(f'Ошибка: {error_message} Попробуйте снова')
+        return
+
+    await state.update_data(login=login)
     await message.answer('Введите пароль:')
     await state.set_state(AuthForm.password)
 
@@ -346,23 +353,32 @@ async def authorize(message: Message, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     password = message.text
+
+    is_valid, error_message = await validate_password(password)
+
+    if not is_valid:
+        await message.answer(f"Ошибка: {error_message} Попробуйте снова.")
+        return
+
+    await state.update_data(password=password)
     action = user_data['action']
+
     if action == 'login':
         if await login_user(login, password):
-            await state.update_data(password=password)
             await message.answer('Вы успешно авторизованы! Выберите действие', reply_markup=kb.inline_keyboard)
         else:
             await message.answer('Неверные логин или пароль. Попробуйте снова', reply_markup=kb.inline_keyboard4)
             await state.clear()
-    if action == 'register':
+
+    elif action == 'register':
         if await user_exists(login):
             await message.answer('Аккаунт с таким логином уже существует', reply_markup=kb.inline_keyboard4)
-            await state.clear()
         else:
             await register_user(user_id=message.from_user.id, login=login, password=password)
             await message.answer('Регистрация завершена! Теперь можете выбрать действие',
                                  reply_markup=kb.inline_keyboard3)
-            await state.clear()
+        await state.clear()
+
     await state.set_state(Form.unrecognized)
 
 
@@ -385,14 +401,10 @@ async def on_text_choice(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     builder_for = user_data.get('builder_for')
-    save_name = user_data.get('save_name')
-    name_hash = callback.data.split(":")[1]
-    await state.update_data(name_hash=name_hash)
-    full_name = name_cache.get(name_hash)
+    full_name = callback.data.split(":")[1]
     text = await get_save_text(full_name)
     if builder_for == 'search':
         sentences = re.split(r'(?<=[.!?])\s*', text)
-        print(text, full_name, name_hash, save_name)
         for i in sentences:
             await callback.message.answer(i)
         await state.set_state(Form.unrecognized)
@@ -414,27 +426,18 @@ async def ask_for_word(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('Введите слово:')
     await state.set_state(Form.word)
 
-
-#
-# @routers.message(Form.text)
-# async def receive_text(message: Message, state: FSMContext):
-#     await state.update_data(text=message.text)
-#     await message.answer('Введите слово:')
-#     await state.set_state(Form.word)
-
-
 @routers.message(Form.word)
 @check_auth
 async def receive_word(message: Message, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     word = message.text
+    await state.set_state(Form.unrecognized)
     if await check_accounts_word(login):
         await message.answer("Вы не можете записать более 10 слов", reply_markup=kb.inline_keyboard)
     else:
         await add_word(login, word)
         await message.answer(f"слово успешно записано", reply_markup=kb.inline_keyboard)
-    await state.set_state(Form.unrecognized)
 
 
 @routers.message(Form.text)
@@ -443,12 +446,12 @@ async def receive_text(message: Message, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     text = message.text
+    await state.set_state(Form.unrecognized)
     if await check_accounts_text(login):
         await message.answer("Вы не можете записать более 10 текстов", reply_markup=kb.inline_keyboard)
     else:
         await add_text(login, text)
         await message.answer(f"Текст успешно записан", reply_markup=kb.inline_keyboard)
-    await state.set_state(Form.unrecognized)
 
 
 @routers.callback_query(F.data == 'bjob')
@@ -465,6 +468,7 @@ async def search_texts(callback: CallbackQuery, state: FSMContext):
     await state.update_data(builder_for='search')
     login = user_data.get('login')
     await get_text(login)
+    await state.set_state(Form.unrecognized)
     if not await get_text(login):
         await callback.message.answer('У вас нет текстов для поиска')
     else:
@@ -475,7 +479,7 @@ async def search_texts(callback: CallbackQuery, state: FSMContext):
 @check_auth
 async def search_files(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('Пожалуйста, отправьте файл для поиска:')
-    await state.set_state(Search.file_upload)
+    await state.set_state(Form.unrecognized)
 
 
 @routers.message(F.document)
@@ -508,15 +512,11 @@ async def receive_search_word(message: Message, state: FSMContext):
             if file_content:
                 results += file_content
 
-        else:
-            await message.answer("По вашему запросу ничего не найдено в загруженных файлах")
         await state.update_data(uploaded_files=[])
-    else:
-        await message.answer("Ошибка поиска. Попробуйте снова")
     await state.update_data(full_text=results)
 
     await message.answer("Учитывать ли регистр при поиске?", reply_markup=kb.inline_keyboard7)
-    await state.set_state(SearchOptions.case_sensitive)
+    await state.set_state(SearchOptions.reg)
 
 
 @routers.callback_query(lambda c: c.data.startswith('text:'))
@@ -529,7 +529,6 @@ async def on_text_choice(callback: CallbackQuery, state: FSMContext):
     await state.update_data(text_hash=text_hash)
     full_text = text_cache.get(text_hash)
     await state.update_data(full_text=full_text)
-    print(full_text)
     if builder_for == 'search':
         await callback.message.answer(f"Вы выбрали текст: {full_text}", reply_markup=kb.inline_keyboard5)
     elif builder_for == 'replace':
@@ -554,22 +553,22 @@ async def another_data(callback: CallbackQuery, state: FSMContext):
 @check_auth
 async def ask_case_sensitive(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("Учитывать ли регистр при поиске?", reply_markup=kb.inline_keyboard7)
-    await state.set_state(SearchOptions.case_sensitive)
+    await state.set_state(SearchOptions.reg)
 
 
-@routers.callback_query(SearchOptions.case_sensitive, F.data == 'yes')
+@routers.callback_query(SearchOptions.reg, F.data == 'yes')
 @check_auth
 async def ask_fuzzy_search_yes(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(case_sensitive=True)
+    await state.update_data(reg=True)
     await callback.message.answer("Использовать ли неточный поиск (учет ошибок в 1-3 символах)?",
                                   reply_markup=kb.inline_keyboard7)
     await state.set_state(SearchOptions.fuzzy_search)
 
 
-@routers.callback_query(SearchOptions.case_sensitive, F.data == 'no')
+@routers.callback_query(SearchOptions.reg, F.data == 'no')
 @check_auth
 async def ask_fuzzy_search_no(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(case_sensitive=False)
+    await state.update_data(reg=False)
     await callback.message.answer("Использовать ли неточный поиск (учет ошибок в 1-3 символах)?",
                                   reply_markup=kb.inline_keyboard7)
     await state.set_state(SearchOptions.fuzzy_search)
@@ -579,13 +578,14 @@ async def ask_fuzzy_search_no(callback: CallbackQuery, state: FSMContext):
 @check_auth
 async def output_text(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-    case_sensitive = user_data.get('case_sensitive')
+    reg = user_data.get('reg')
     full_text = user_data.get('full_text')
     full_word = user_data.get('full_word')
 
-    results = await fuzzy_search(full_text, full_word, case_sensitive=case_sensitive)
+    await state.set_state(Form.unrecognized)
+
+    results = await fuzzy_search(full_text, full_word, reg=reg)
     await state.update_data(results=results)
-    print(results)
     if results != list():
         await callback.message.answer("Каким образом вывести текст?",
                                       reply_markup=kb.inline_out_type)
@@ -598,13 +598,12 @@ async def output_text(callback: CallbackQuery, state: FSMContext):
 @check_auth
 async def output_file(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-    case_sensitive = user_data.get('case_sensitive')
+    reg = user_data.get('reg')
     full_text = user_data.get('full_text')
     full_word = user_data.get('full_word')
-
-    results = await search_word_in_text(full_text, full_word, case_sensitive=case_sensitive)
+    await state.set_state(Form.unrecognized)
+    results = await search_word_in_text(full_text, full_word, reg=reg)
     await state.update_data(results=results)
-    print(results, case_sensitive)
     if results != list():
         await callback.message.answer("Каким образом вывести текст?",
                                       reply_markup=kb.inline_out_type)
@@ -672,9 +671,7 @@ async def perform_exact_search(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     results = user_data.get('results')
 
-    print(results)
     save_data = ' '.join(results)
-    print(save_data)
     await state.update_data(save_data=save_data)
     await callback.message.answer("Введите имя для сохранения результата:")
 
@@ -713,9 +710,7 @@ async def on_word_choice(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
     builder_for = user_data.get('builder_for')
-    word_hash = callback.data.split(":")[1]
-    await state.update_data(word_hash=word_hash)
-    full_word = word_cache.get(word_hash)
+    full_word = callback.data.split(":")[1]
     await state.update_data(full_word=full_word)
     if builder_for == 'search':
         await callback.message.answer(f"Вы выбрали слово: {full_word}", reply_markup=kb.inline_keyboard6)
@@ -844,11 +839,8 @@ async def logout(callback: CallbackQuery, state: FSMContext):
 async def on_text_choice(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     login = user_data.get('login')
-    login_hash = callback.data.split(":")[1]
-    await state.update_data(login_hash=login_hash)
-    full_login = login_cache.get(login_hash)
+    full_login = callback.data.split(":")[1]
     await state.update_data(full_login=full_login)
-    print(full_login, login)
     if login == full_login:
         await callback.message.answer('Нельзя удалить аккаунт на котором находишься',
                                       reply_markup=kb.inline_keyboard_next)

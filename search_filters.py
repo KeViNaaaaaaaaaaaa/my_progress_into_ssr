@@ -2,16 +2,16 @@ import re
 import difflib
 
 
-async def search_word_in_text(text, word, case_sensitive=True):
+async def search_word_in_text(text, word, reg=True):
     sentence_endings = re.compile(r'(?<=[.!?])\s*')
     sentences = sentence_endings.split(text)
     result = []
 
-    if not case_sensitive:
+    if not reg:
         word = word.lower()
 
     for sentence in sentences:
-        if not case_sensitive:
+        if not reg:
             sentence_check = sentence.lower()
         else:
             sentence_check = sentence
@@ -22,16 +22,16 @@ async def search_word_in_text(text, word, case_sensitive=True):
     return result
 
 
-async def fuzzy_search(text, word, case_sensitive=True):
+async def fuzzy_search(text, word, reg=True):
     sentence_endings = re.compile(r'(?<=[.!?])\s*')
     sentences = sentence_endings.split(text)
     result = []
 
-    if not case_sensitive:
+    if not reg:
         word = word.lower()
 
     for sentence in sentences:
-        if not case_sensitive:
+        if not reg:
             sentence_check = sentence.lower()
         else:
             sentence_check = sentence
@@ -45,3 +45,4 @@ async def fuzzy_search(text, word, case_sensitive=True):
                 break
 
     return result
+

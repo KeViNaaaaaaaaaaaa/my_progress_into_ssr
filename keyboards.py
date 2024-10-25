@@ -14,9 +14,6 @@ async def hash_text(text):
 
 
 text_cache = {}
-word_cache = {}
-name_cache = {}
-login_cache = {}
 
 
 async def text_connect(text):
@@ -34,7 +31,6 @@ async def word_connect(word):
     builder1 = InlineKeyboardBuilder()
 
     for i in word:
-        word_cache[i[0]] = i[0]
         builder1.add(InlineKeyboardButton(text=i[0], callback_data=f'word:{i[0]}'))
 
 
@@ -43,7 +39,6 @@ async def save_name_connect(name):
     builder2 = InlineKeyboardBuilder()
 
     for i in name:
-        name_cache[i[0]] = i[0]
         builder2.add(InlineKeyboardButton(text=i[0], callback_data=f'name:{i[0]}'))
 
 async def login_connect(login):
@@ -51,7 +46,6 @@ async def login_connect(login):
     builder3 = InlineKeyboardBuilder()
 
     for i in login:
-        login_cache[i[0]] = i[0]
         builder3.add(InlineKeyboardButton(text=i[0], callback_data=f'login:{i[0]}'))
 
 
@@ -61,7 +55,7 @@ main = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text='Поиск')],
     [KeyboardButton(text='Сохранения')],
     [KeyboardButton(text='Удалить аккаунт')]
-], resize_keyboard=True, input_field_placeholder='Выбери пункт')
+])
 
 inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Записать текст', callback_data='name')],
